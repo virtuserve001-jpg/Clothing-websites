@@ -1,0 +1,3495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ DearPal - Special Connection</title>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        background: linear-gradient(135deg, #f0f4ff, #f8fafc);
+        min-height: 100vh;
+        color: #334155;
+    }
+    
+    .app-container {
+        max-width: 480px;
+        margin: 0 auto;
+        min-height: 100vh;
+        background: white;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        position: relative;
+    }
+    
+    /* Header Styles */
+    .app-header {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        color: white;
+        padding: 25px 20px;
+        text-align: center;
+        position: relative;
+    }
+    
+    .app-title {
+        font-size: 26px;
+        font-weight: 800;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+    
+    .app-subtitle {
+        opacity: 0.9;
+        font-size: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .connection-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255,255,255,0.2);
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+    }
+    
+    .status-dot {
+        width: 10px;
+        height: 10px;
+        background: #10b981;
+        border-radius: 50%;
+        transition: background-color 0.3s;
+    }
+    
+    .status-dot.offline {
+        background: #ef4444;
+    }
+    
+    .status-dot.connecting {
+        background: #f59e0b;
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    /* Navigation */
+    .app-nav {
+        display: flex;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 0 15px;
+    }
+    
+    .nav-item {
+        flex: 1;
+        padding: 18px 10px;
+        text-align: center;
+        color: #94a3b8;
+        cursor: pointer;
+        transition: all 0.3s;
+        border-bottom: 3px solid transparent;
+        user-select: none;
+    }
+    
+    .nav-item:hover {
+        color: #8b5cf6;
+    }
+    
+    .nav-item.active {
+        color: #8b5cf6;
+        border-bottom-color: #8b5cf6;
+    }
+    
+    .nav-icon {
+        font-size: 20px;
+        margin-bottom: 5px;
+    }
+    
+    .nav-label {
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    /* Main Content */
+    .app-main {
+        padding: 20px;
+        padding-bottom: 90px;
+        min-height: calc(100vh - 150px);
+    }
+    
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Loading Screen */
+    .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.5s;
+    }
+    
+    .loading-content {
+        text-align: center;
+        color: white;
+    }
+    
+    .loading-spinner {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 30px;
+    }
+    
+    .spinner-ring {
+        position: absolute;
+        border: 4px solid transparent;
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1.5s linear infinite;
+    }
+    
+    .spinner-ring:nth-child(1) {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .spinner-ring:nth-child(2) {
+        width: 90px;
+        height: 90px;
+        top: 15px;
+        left: 15px;
+        animation-delay: 0.2s;
+    }
+    
+    .spinner-ring:nth-child(3) {
+        width: 60px;
+        height: 60px;
+        top: 30px;
+        left: 30px;
+        animation-delay: 0.4s;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+        margin-top: 15px;
+        opacity: 0.8;
+    }
+    </style>
+</head><body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring delay-1"></div>
+                <div class="spinner-ring delay-2"></div>
+            </div>
+            <h2>Connecting to DearPal...</h2>
+            <p class="loading-text">Creating special connections ✨</p>
+        </div>
+    </div>
+    
+    <!-- Main App -->
+    <div class="app-container" id="appContainer" style="display: none;">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="app-title">
+                <i class="fas fa-heart"></i>
+                DearPal
+            </div>
+            <div class="app-subtitle">Special Connection App</div>
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Connecting...</span>
+            </div>
+        </header>
+        
+        <!-- Navigation -->
+        <nav class="app-nav">
+            <div class="nav-item active" data-tab="connect">
+                <div class="nav-icon"><i class="fas fa-user-friends"></i></div>
+                <div class="nav-label">Connect</div>
+            </div>
+            <div class="nav-item" data-tab="affection">
+                <div class="nav-icon"><i class="fas fa-heart"></i></div>
+                <div class="nav-label">Affection</div>
+            </div>
+            <div class="nav-item" data-tab="moments">
+                <div class="nav-icon"><i class="fas fa-star"></i></div>
+                <div class="nav-label">Moments</div>
+            </div>
+            <div class="nav-item" data-tab="more">
+                <div class="nav-icon"><i class="fas fa-ellipsis-h"></i></div>
+                <div class="nav-label">More</div>
+            </div>
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="app-main">
+            
+            <!-- Connect Tab -->
+            <div class="tab-content active" id="connectTab">
+                <div class="section-card">
+                    <h2><i class="fas fa-id-card"></i> Your Identity</h2>
+                    <div class="input-group">
+                        <input type="text" id="myId" readonly class="input-field">
+                        <div class="input-actions">
+                            <button class="icon-btn" onclick="copyMyId()" title="Copy ID">
+                                <i class="far fa-copy"></i>
+                            </button>
+                            <button class="icon-btn" onclick="refreshMyId()" title="New ID">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="input-hint">Share this ID with your special pal</p>
+                </div>
+                
+                <div class="section-card">
+                    <h2><i class="fas fa-user-friends"></i> Connect to Pal</h2>
+                    <div class="connection-options">
+                        <div class="connection-method">
+                            <h3><i class="fas fa-phone-alt"></i> Direct Connection</h3>
+                            <input type="text" id="partnerId" placeholder="Enter Pal's ID (e.g., DP-ABC123)" class="input-field">
+                            <button class="primary-btn" onclick="initiateCall()">
+                                <i class="fas fa-phone-alt"></i> Ring Your Pal
+                            </button>
+                        </div>
+                        
+                        <div class="divider">
+                            <span>OR</span>
+                        </div>
+                        
+                        <div class="connection-method">
+                            <h3><i class="fas fa-link"></i> Pair Code</h3>
+                            <div class="code-section">
+                                <input type="text" id="pairCode" placeholder="Enter 6-digit code" class="input-field" maxlength="6">
+                                <button class="secondary-btn" onclick="connectWithCode()">
+                                    <i class="fas fa-link"></i> Connect with Code
+                                </button>
+                                <button class="tertiary-btn" onclick="generatePairCode()">
+                                    <i class="fas fa-key"></i> Generate New Code
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Active Connections -->
+                    <div class="active-connections" id="activeConnections" style="margin-top: 20px; display: none;">
+                        <h3><i class="fas fa-users"></i> Active Connections</h3>
+                        <div class="connection-list" id="connectionList">
+                            <!-- Connections will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="quick-actions-grid">
+                    <div class="quick-action" onclick="switchTab('affection')">
+                        <div class="quick-icon"><i class="fas fa-heart"></i></div>
+                        <span>Send Affection</span>
+                    </div>
+                    <div class="quick-action" onclick="sendSweetMessage()">
+                        <div class="quick-icon"><i class="fas fa-comment"></i></div>
+                        <span>Sweet Message</span>
+                    </div>
+                    <div class="quick-action" onclick="sendThinkingOfYou()">
+                        <div class="quick-icon"><i class="fas fa-lightbulb"></i></div>
+                        <span>Thinking of You</span>
+                    </div>
+                    <div class="quick-action" onclick="askFriendQuestion()">
+                        <div class="quick-icon"><i class="fas fa-question"></i></div>
+                        <span>Quick Question</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Affection Tab -->
+            <div class="tab-content" id="affectionTab">
+                <!-- Content loaded dynamically -->
+            </div>
+            
+            <!-- Moments Tab -->
+            <div class="tab-content" id="momentsTab">
+                <!-- Content loaded dynamically -->
+            </div>
+            
+            <!-- More Tab -->
+            <div class="tab-content" id="moreTab">
+                <!-- Content loaded dynamically -->
+            </div>
+        </main>
+    </div><!-- Incoming Call Modal -->
+<div class="modal-overlay" id="incomingCallModal">
+    <div class="modal-content">
+        <div class="call-animation">
+            <div class="pulse-ring"></div>
+            <div class="pulse-ring delay-1"></div>
+            <div class="pulse-ring delay-2"></div>
+            <div class="caller-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+        </div>
+        
+        <h2 class="modal-title">Incoming Connection!</h2>
+        <p class="modal-subtitle" id="callerId">From: Loading...</p>
+        <p class="modal-message">Your pal wants to connect with you ✨</p>
+        
+        <div class="modal-actions">
+            <button class="modal-btn accept" onclick="acceptCall()">
+                <i class="fas fa-check"></i> Accept
+            </button>
+            <button class="modal-btn dismiss" onclick="dismissCall()">
+                <i class="fas fa-times"></i> Dismiss
+            </button>
+            <button class="modal-btn message" onclick="sendQuickResponse()">
+                <i class="fas fa-comment"></i> Quick Reply
+            </button>
+        </div>
+        
+        <div class="call-timer">
+            <div class="timer-circle">
+                <svg width="60" height="60">
+                    <circle class="timer-bg" cx="30" cy="30" r="28"></circle>
+                    <circle class="timer-progress" cx="30" cy="30" r="28"></circle>
+                </svg>
+                <span class="timer-text" id="callTimer">30s</span>
+            </div>
+            <p class="timer-label">Auto-dismiss in</p>
+        </div>
+    </div>
+</div>
+
+<!-- Connection Request Modal -->
+<div class="modal-overlay" id="connectionRequestModal">
+    <div class="modal-content">
+        <div class="call-animation">
+            <div class="pulse-ring"></div>
+            <div class="caller-avatar">
+                <i class="fas fa-user-plus"></i>
+            </div>
+        </div>
+        
+        <h2 class="modal-title">Connection Request</h2>
+        <p class="modal-subtitle" id="requesterId">User ID: Loading...</p>
+        <p class="modal-message">Wants to connect with you as your pal</p>
+        
+        <div class="modal-actions">
+            <button class="modal-btn accept" onclick="acceptConnectionRequest()">
+                <i class="fas fa-check"></i> Accept
+            </button>
+            <button class="modal-btn dismiss" onclick="declineConnectionRequest()">
+                <i class="fas fa-times"></i> Decline
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Message Modal -->
+<div class="modal-overlay" id="quickMessageModal">
+    <div class="modal-content">
+        <h2 class="modal-title">Send Quick Message</h2>
+        <div class="quick-messages">
+            <button class="message-option" onclick="sendPreMessage('Hope you\\'re having a wonderful day! ✨')">
+                Hope you're having a wonderful day! ✨
+            </button>
+            <button class="message-option" onclick="sendPreMessage('Just thinking of you, dear! 💭')">
+                Just thinking of you, dear! 💭
+            </button>
+            <button class="message-option" onclick="sendPreMessage('Sending good vibes your way! 🌟')">
+                Sending good vibes your way! 🌟
+            </button>
+            <button class="message-option" onclick="sendPreMessage('You make my day brighter! ☀️')">
+                You make my day brighter! ☀️
+            </button>
+            <button class="message-option" onclick="sendPreMessage('Miss your energy! ⚡')">
+                Miss your energy! ⚡
+            </button>
+        </div>
+        <button class="modal-btn close" onclick="closeModal('quickMessageModal')">
+            Close
+        </button>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Animation Container -->
+<div class="animation-container" id="animationContainer"></div>
+
+<!-- Audio Elements -->
+<audio id="ringtone" preload="auto">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg">
+</audio>
+<audio id="notificationSound" preload="auto">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-happy-notification-alert-3028.mp3" type="audio/mpeg">
+</audio>
+
+<style>
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.95);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+    backdrop-filter: blur(5px);
+}
+
+.modal-overlay.active {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 25px;
+    padding: 30px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    animation: slideUp 0.4s ease;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.call-animation {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 25px;
+}
+
+.caller-avatar {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 32px;
+    z-index: 2;
+}
+
+.pulse-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 150px;
+    height: 150px;
+    border: 3px solid #8b5cf6;
+    border-radius: 50%;
+    animation: pulseRing 2s infinite;
+}
+
+.pulse-ring.delay-1 { animation-delay: 0.66s; }
+.pulse-ring.delay-2 { animation-delay: 1.33s; }
+
+@keyframes pulseRing {
+    0% { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+.modal-title {
+    font-size: 24px;
+    color: #1e293b;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.modal-subtitle {
+    color: #64748b;
+    margin-bottom: 5px;
+    font-size: 16px;
+}
+
+.modal-message {
+    color: #94a3b8;
+    margin-bottom: 25px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.modal-btn {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    border-radius: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 15px;
+}
+
+.modal-btn.accept {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.modal-btn.dismiss {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+
+.modal-btn.message {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.modal-btn.close {
+    background: #64748b;
+    color: white;
+    margin-top: 20px;
+    width: 100%;
+}
+
+.modal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.modal-btn:active {
+    transform: translateY(0);
+}
+
+.call-timer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.timer-circle {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    margin-bottom: 10px;
+}
+
+.timer-circle svg {
+    transform: rotate(-90deg);
+}
+
+.timer-bg {
+    fill: none;
+    stroke: #e2e8f0;
+    stroke-width: 3;
+}
+
+.timer-progress {
+    fill: none;
+    stroke: #f59e0b;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 175.93;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear;
+}
+
+.timer-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 14px;
+}
+
+.timer-label {
+    color: #64748b;
+    font-size: 12px;
+}
+
+/* Quick Messages Modal */
+.quick-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.quick-messages::-webkit-scrollbar {
+    width: 4px;
+}
+
+.quick-messages::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 2px;
+}
+
+.quick-messages::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+}
+
+.message-option {
+    padding: 15px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    color: #475569;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.message-option:hover {
+    background: #f1f5f9;
+    transform: translateX(5px);
+    border-color: #8b5cf6;
+}
+</style><style>
+/* Section Cards */
+.section-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+    border: 1px solid #f1f5f9;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.section-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08);
+}
+
+.section-card h2 {
+    font-size: 20px;
+    color: #1e293b;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+}
+
+/* Input Styles */
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.input-field {
+    flex: 1;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 15px;
+    font-size: 16px;
+    color: #1e293b;
+    transition: all 0.3s;
+    font-family: inherit;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+}
+
+.input-field::placeholder {
+    color: #94a3b8;
+}
+
+.input-field:read-only {
+    background: #f1f5f9;
+    cursor: not-allowed;
+    color: #64748b;
+}
+
+.input-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.icon-btn {
+    width: 50px;
+    height: 50px;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 12px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.icon-btn:hover {
+    background: #8b5cf6;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(139, 92, 246, 0.2);
+}
+
+.input-hint {
+    color: #94a3b8;
+    font-size: 14px;
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
+/* Button Styles */
+.primary-btn {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.primary-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(139, 92, 246, 0.3);
+}
+
+.primary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.secondary-btn {
+    width: 100%;
+    padding: 16px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 2px solid #e2e8f0;
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.secondary-btn:hover:not(:disabled) {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+}
+
+.secondary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.tertiary-btn {
+    width: 100%;
+    padding: 16px;
+    background: transparent;
+    color: #8b5cf6;
+    border: 2px solid #8b5cf6;
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.tertiary-btn:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.1);
+    transform: translateY(-1px);
+}
+
+.tertiary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Connection Options */
+.connection-options {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.connection-method {
+    background: #f8fafc;
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.connection-method h3 {
+    font-size: 16px;
+    color: #475569;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+/* Divider */
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 25px 0;
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
+
+.divider span {
+    padding: 0 15px;
+    font-size: 12px;
+    background: white;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Code Section */
+.code-section {
+    margin-top: 20px;
+}
+
+/* Active Connections */
+.active-connections {
+    background: #f8fafc;
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 20px;
+    border: 1px solid #e2e8f0;
+}
+
+.active-connections h3 {
+    font-size: 16px;
+    color: #475569;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.connection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.connection-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.connection-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 2px;
+}
+
+.connection-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+}
+
+.connection-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s;
+}
+
+.connection-item:hover {
+    border-color: #8b5cf6;
+    transform: translateY(-2px);
+}
+
+.connection-info {
+    flex: 1;
+}
+
+.connection-info h4 {
+    font-size: 14px;
+    color: #1e293b;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.connection-info p {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.connection-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.connection-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.connection-status-indicator.offline {
+    background: #94a3b8;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.2);
+}
+
+.connection-status-indicator.pending {
+    background: #f59e0b;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+    animation: pulse 2s infinite;
+}
+</style><style>
+/* Quick Actions Grid */
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.quick-action {
+    background: white;
+    border: 1px solid #f1f5f9;
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    user-select: none;
+}
+
+.quick-action:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    border-color: #8b5cf6;
+}
+
+.quick-action:active {
+    transform: translateY(-1px);
+}
+
+.quick-icon {
+    font-size: 28px;
+    color: #8b5cf6;
+    margin-bottom: 10px;
+}
+
+.quick-action span {
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+}
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 350px;
+}
+
+.toast {
+    background: white;
+    border-radius: 15px;
+    padding: 15px 20px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+    border-left: 4px solid #8b5cf6;
+    animation: slideInRight 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.toast.success {
+    border-left-color: #10b981;
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.toast.error {
+    border-left-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.toast.info {
+    border-left-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.toast.warning {
+    border-left-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOutRight {
+    to { transform: translateX(100%); opacity: 0; }
+}
+
+.toast.fade-out {
+    animation: slideOutRight 0.3s ease forwards;
+}
+
+.toast-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.toast.success .toast-icon { 
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+.toast.error .toast-icon { 
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+.toast.info .toast-icon { 
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+.toast.warning .toast-icon { 
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.toast-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.toast-content p {
+    margin: 0;
+    font-size: 14px;
+    color: #1e293b;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 5px;
+    flex-shrink: 0;
+    transition: color 0.2s;
+}
+
+.toast-close:hover {
+    color: #64748b;
+}
+
+/* Animation Container */
+.animation-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 9998;
+}
+
+.floating-emoji {
+    position: absolute;
+    font-size: 24px;
+    animation: floatUp 3s ease-out forwards;
+    pointer-events: none;
+    z-index: 1;
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(0) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100px) scale(0) rotate(180deg);
+        opacity: 0;
+    }
+}
+
+/* Affection Grid */
+.affection-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.affection-item {
+    background: white;
+    border: 1px solid #f1f5f9;
+    border-radius: 15px;
+    padding: 20px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    user-select: none;
+}
+
+.affection-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    border-color: #8b5cf6;
+}
+
+.affection-emoji {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.affection-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    text-transform: capitalize;
+}
+
+/* History List */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.history-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 2px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+}
+
+.history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 15px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border-left: 4px solid #8b5cf6;
+    transition: all 0.3s;
+}
+
+.history-item:hover {
+    background: #f1f5f9;
+    transform: translateX(5px);
+}
+
+.history-item.received {
+    border-left-color: #10b981;
+}
+
+.history-item.sent {
+    border-left-color: #8b5cf6;
+}
+
+.history-emoji {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.history-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.history-message {
+    color: #1e293b;
+    margin-bottom: 5px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.history-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.history-status {
+    font-weight: 600;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+}
+
+.history-item.received .history-status {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+</style>
+<script>
+// ========== APP CONFIGURATION ==========
+const APP_CONFIG = {
+    NAME: "DearPal",
+    VERSION: "2.0.0",
+    FIREBASE_CONFIG: {
+        apiKey: "AIzaSyBdvlOGpTCBRgfKgZlFOCjSEZ_ZeNm_W5k",
+        authDomain: "partner-ring.firebaseapp.com",
+        databaseURL: "https://partner-ring-default-rtdb.firebaseio.com",
+        projectId: "partner-ring",
+        storageBucket: "partner-ring.appspot.com",
+        messagingSenderId: "1057850708382",
+        appId: "1:1057850708382:web:8b9cd889448d1de8f8aee0"
+    }
+};
+
+// ========== APP STATE ==========
+let AppState = {
+    // User Info
+    myId: null,
+    myName: "Pal",
+    partnerId: null,
+    partnerName: null,
+    
+    // Settings
+    settings: {
+        sound: true,
+        vibration: true,
+        notifications: true,
+        theme: 'light'
+    },
+    
+    // Data
+    moments: [],
+    connections: [],
+    affectionHistory: [],
+    
+    // App State
+    currentCall: null,
+    currentConnectionRequest: null,
+    isRinging: false,
+    isConnected: false,
+    userInteracted: false,
+    
+    // Pair Codes
+    pairCodes: new Map(),
+    
+    // Active connections
+    activeConnections: new Map()
+};
+
+// ========== INITIALIZATION ==========
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Show loading state
+        document.getElementById('statusDot').classList.add('connecting');
+        
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(APP_CONFIG.FIREBASE_CONFIG);
+        }
+        
+        // Load user state
+        await loadAppState();
+        
+        // Initialize UI
+        initializeUI();
+        
+        // Setup Firebase listeners
+        setupFirebaseListeners();
+        
+        // Setup audio
+        initializeAudio();
+        
+        // Show app with smooth transition
+        setTimeout(() => {
+            document.getElementById('loadingScreen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'block';
+                
+                // Fade in app
+                document.getElementById('appContainer').style.opacity = '0';
+                document.getElementById('appContainer').style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    document.getElementById('appContainer').style.opacity = '1';
+                    showToast('✨ DearPal is ready! Connect with your pal!', 'success');
+                }, 100);
+                
+            }, 500);
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Initialization error:', error);
+        showToast('Failed to initialize app. Please refresh.', 'error');
+        document.getElementById('loadingScreen').innerHTML = `
+            <div class="loading-content">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 20px;"></i>
+                <h2>Connection Error</h2>
+                <p class="loading-text">Failed to load app. Please refresh.</p>
+                <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: white; color: #8b5cf6; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                    Refresh App
+                </button>
+            </div>
+        `;
+    }
+});
+
+// ========== STATE MANAGEMENT ==========
+async function loadAppState() {
+    try {
+        // Load user ID
+        let savedId = localStorage.getItem('dearpal_userId');
+        if (!savedId) {
+            savedId = generateUserId();
+            localStorage.setItem('dearpal_userId', savedId);
+        }
+        AppState.myId = savedId;
+        document.getElementById('myId').value = savedId;
+        
+        // Load user name
+        AppState.myName = localStorage.getItem('dearpal_userName') || "Pal";
+        
+        // Load settings
+        const savedSettings = localStorage.getItem('dearpal_settings');
+        AppState.settings = savedSettings ? JSON.parse(savedSettings) : {
+            sound: true,
+            vibration: true,
+            notifications: true,
+            theme: 'light'
+        };
+        
+        // Load partner info
+        AppState.partnerId = localStorage.getItem('dearpal_partnerId');
+        AppState.partnerName = localStorage.getItem('dearpal_partnerName');
+        
+        // Load moments
+        const savedMoments = localStorage.getItem('dearpal_moments');
+        AppState.moments = savedMoments ? JSON.parse(savedMoments) : [];
+        
+        // Load connections
+        const savedConnections = localStorage.getItem('dearpal_connections');
+        AppState.connections = savedConnections ? JSON.parse(savedConnections) : [];
+        
+        // Load active connections
+        const savedActive = localStorage.getItem('dearpal_activeConnections');
+        if (savedActive) {
+            AppState.activeConnections = new Map(JSON.parse(savedActive));
+        }
+        
+    } catch (error) {
+        console.error('Load state error:', error);
+        // Reset to defaults on error
+        resetLocalStorage();
+    }
+}
+
+function resetLocalStorage() {
+    const keys = [
+        'dearpal_userId',
+        'dearpal_userName',
+        'dearpal_settings',
+        'dearpal_partnerId',
+        'dearpal_partnerName',
+        'dearpal_moments',
+        'dearpal_connections',
+        'dearpal_activeConnections',
+        'dearpal_affection'
+    ];
+    
+    keys.forEach(key => localStorage.removeItem(key));
+    location.reload();
+}
+
+function saveAppState() {
+    try {
+        localStorage.setItem('dearpal_userId', AppState.myId);
+        localStorage.setItem('dearpal_userName', AppState.myName);
+        localStorage.setItem('dearpal_settings', JSON.stringify(AppState.settings));
+        localStorage.setItem('dearpal_partnerId', AppState.partnerId || '');
+        localStorage.setItem('dearpal_partnerName', AppState.partnerName || '');
+        localStorage.setItem('dearpal_moments', JSON.stringify(AppState.moments));
+        localStorage.setItem('dearpal_connections', JSON.stringify(AppState.connections));
+        localStorage.setItem('dearpal_activeConnections', 
+            JSON.stringify(Array.from(AppState.activeConnections.entries())));
+    } catch (error) {
+        console.error('Save state error:', error);
+        showToast('Failed to save data', 'error');
+    }
+}
+
+// ========== FIREBASE SETUP ==========
+function setupFirebaseListeners() {
+    const db = firebase.database();
+    
+    // Connection status
+    db.ref('.info/connected').on('value', snapshot => {
+        const connected = snapshot.val();
+        AppState.isConnected = connected;
+        
+        const dot = document.getElementById('statusDot');
+        const text = document.getElementById('statusText');
+        
+        dot.classList.remove('connecting');
+        
+        if (connected) {
+            dot.classList.remove('offline');
+            dot.classList.add('online');
+            text.textContent = 'Connected';
+            
+            // Update online status for active connections
+            updateConnectionStatusOnline();
+            
+            // Listen for incoming calls
+            setupCallListeners();
+            
+            // Listen for connection requests
+            setupRequestListeners();
+            
+            // Listen for affection messages
+            setupAffectionListeners();
+            
+        } else {
+            dot.classList.remove('online');
+            dot.classList.add('offline');
+            text.textContent = 'Offline';
+        }
+    });
+}
+
+function setupCallListeners() {
+    if (!AppState.myId) return;
+    
+    const db = firebase.database();
+    db.ref('calls/' + AppState.myId).on('child_added', snapshot => {
+        const callData = snapshot.val();
+        if (callData && callData.from !== AppState.myId) {
+            handleIncomingCall(callData);
+        }
+        // Clean up after processing
+        setTimeout(() => {
+            snapshot.ref.remove();
+        }, 1000);
+    });
+}
+
+function setupRequestListeners() {
+    if (!AppState.myId) return;
+    
+    const db = firebase.database();
+    db.ref('connectionRequests/' + AppState.myId).on('child_added', snapshot => {
+        const requestData = snapshot.val();
+        if (requestData && requestData.from !== AppState.myId) {
+            handleConnectionRequest(requestData);
+        }
+        // Clean up after processing
+        setTimeout(() => {
+            snapshot.ref.remove();
+        }, 1000);
+    });
+}
+
+function setupAffectionListeners() {
+    if (!AppState.myId) return;
+    
+    const db = firebase.database();
+    db.ref('affection/' + AppState.myId).on('child_added', snapshot => {
+        const affectionData = snapshot.val();
+        if (affectionData && affectionData.from !== AppState.myId) {
+            handleAffectionMessage(affectionData);
+        }
+        // Clean up after processing
+        setTimeout(() => {
+            snapshot.ref.remove();
+        }, 1000);
+    });
+}
+
+function updateConnectionStatusOnline() {
+    // Update all active connections to online
+    AppState.activeConnections.forEach((connection, userId) => {
+        connection.status = 'online';
+        connection.lastSeen = Date.now();
+    });
+    saveAppState();
+    updateActiveConnections();
+}
+</script><script>
+// ========== UI INITIALIZATION ==========
+function initializeUI() {
+    // Update UI with loaded state
+    updateSettingsUI();
+    
+    // Setup navigation
+    setupNavigation();
+    
+    // Setup event listeners
+    setupEventListeners();
+    
+    // Load tab content
+    loadAffectionTab();
+    loadMomentsTab();
+    loadMoreTab();
+    
+    // Update active connections display
+    updateActiveConnections();
+}
+
+function setupNavigation() {
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tab = item.getAttribute('data-tab');
+            switchTab(tab);
+            
+            // Update active state
+            navItems.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            
+            // Add click effect
+            item.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                item.style.transform = '';
+            }, 150);
+        });
+    });
+}
+
+function switchTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Show selected tab
+    const selectedTab = document.getElementById(tabName + 'Tab');
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+        
+        // Refresh tab content if needed
+        switch(tabName) {
+            case 'affection':
+                loadAffectionTab();
+                break;
+            case 'moments':
+                loadMomentsTab();
+                break;
+            case 'more':
+                loadMoreTab();
+                break;
+            case 'connect':
+                updateActiveConnections();
+                break;
+        }
+    }
+}
+
+function updateSettingsUI() {
+    // Update toggle switches
+    document.querySelectorAll('.toggle-switch').forEach(toggle => {
+        const setting = toggle.getAttribute('data-setting');
+        if (setting && AppState.settings[setting] !== undefined) {
+            toggle.classList.toggle('active', AppState.settings[setting]);
+        }
+    });
+}
+
+// ========== AUDIO MANAGEMENT ==========
+function initializeAudio() {
+    const ringtone = document.getElementById('ringtone');
+    
+    // Preload audio
+    ringtone.load();
+    
+    // Enable audio on first user interaction
+    const enableAudio = () => {
+        if (!AppState.userInteracted) {
+            AppState.userInteracted = true;
+            console.log('Audio enabled by user interaction');
+            showToast('Audio enabled', 'info');
+        }
+    };
+    
+    ['click', 'touchstart', 'keydown'].forEach(event => {
+        document.addEventListener(event, enableAudio, { once: true });
+    });
+}
+
+function playRingtone() {
+    if (!AppState.settings.sound || !AppState.userInteracted) return;
+    
+    try {
+        const ringtone = document.getElementById('ringtone');
+        ringtone.currentTime = 0;
+        ringtone.volume = 1.0;
+        
+        const playPromise = ringtone.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.log('Audio play failed:', error);
+                // Try fallback
+                playNotificationSound();
+            });
+        }
+    } catch (error) {
+        console.log('Ringtone error:', error);
+    }
+}
+
+function playNotificationSound() {
+    if (!AppState.settings.sound || !AppState.userInteracted) return;
+    
+    try {
+        const sound = document.getElementById('notificationSound');
+        sound.currentTime = 0;
+        sound.volume = 0.7;
+        sound.play().catch(e => console.log('Notification sound failed:', e));
+    } catch (error) {
+        console.log('Notification sound error:', error);
+    }
+}
+
+function stopRingtone() {
+    const ringtone = document.getElementById('ringtone');
+    ringtone.pause();
+    ringtone.currentTime = 0;
+    AppState.isRinging = false;
+}
+
+// ========== TOAST NOTIFICATIONS ==========
+function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toastContainer');
+    const toastId = 'toast-' + Date.now();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.id = toastId;
+    toast.setAttribute('role', 'alert');
+    
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+    
+    toast.innerHTML = `
+        <div class="toast-icon">
+            <i class="fas ${icons[type] || 'fa-info-circle'}"></i>
+        </div>
+        <div class="toast-content">
+            <p>${message}</p>
+        </div>
+        <button class="toast-close" onclick="closeToast('${toastId}')" aria-label="Close notification">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        closeToast(toastId);
+    }, 5000);
+}
+
+function closeToast(toastId) {
+    const toast = document.getElementById(toastId);
+    if (toast) {
+        toast.classList.add('fade-out');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }
+}
+
+// ========== UTILITY FUNCTIONS ==========
+function generateUserId() {
+    const prefix = "DP-";
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ123456789";
+    let id = "";
+    
+    for (let i = 0; i < 6; i++) {
+        id += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    return prefix + id;
+}
+
+function copyMyId() {
+    const id = AppState.myId;
+    navigator.clipboard.writeText(id)
+        .then(() => {
+            showToast('📋 ID copied to clipboard!', 'success');
+            // Visual feedback
+            const copyBtn = document.querySelector('.icon-btn:nth-child(1)');
+            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+            copyBtn.style.background = '#10b981';
+            copyBtn.style.color = 'white';
+            setTimeout(() => {
+                copyBtn.innerHTML = '<i class="far fa-copy"></i>';
+                copyBtn.style.background = '';
+                copyBtn.style.color = '';
+            }, 2000);
+        })
+        .catch(() => {
+            // Fallback for older browsers
+            const input = document.getElementById('myId');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            showToast('ID copied!', 'success');
+        });
+}
+
+function refreshMyId() {
+    if (confirm('Generate a new ID? Current connections will be reset.')) {
+        const newId = generateUserId();
+        AppState.myId = newId;
+        localStorage.setItem('dearpal_userId', newId);
+        document.getElementById('myId').value = newId;
+        
+        // Reset connections
+        AppState.activeConnections.clear();
+        AppState.connections = [];
+        AppState.partnerId = null;
+        AppState.partnerName = null;
+        saveAppState();
+        updateActiveConnections();
+        
+        showToast('New ID generated!', 'success');
+        showFloatingAnimation('🆔', 5);
+    }
+}
+
+function showModal(modalId) {
+    document.getElementById(modalId).classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// ========== ACTIVE CONNECTIONS DISPLAY ==========
+function updateActiveConnections() {
+    const container = document.getElementById('activeConnections');
+    const connectionList = document.getElementById('connectionList');
+    
+    if (!container || !connectionList) return;
+    
+    if (AppState.activeConnections.size === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'block';
+    
+    let html = '';
+    AppState.activeConnections.forEach((connection, userId) => {
+        const statusClass = connection.status === 'online' ? '' : 
+                          connection.status === 'pending' ? 'pending' : 'offline';
+        const lastSeen = connection.lastSeen ? 
+            formatTimeAgo(connection.lastSeen) : 'Just now';
+        
+        html += `
+            <div class="connection-item">
+                <div class="connection-info">
+                    <h4>${connection.name || userId}</h4>
+                    <p>${userId}</p>
+                    <p style="font-size: 11px; color: #94a3b8; margin-top: 5px;">
+                        <i class="fas fa-clock"></i> ${lastSeen}
+                    </p>
+                </div>
+                <div class="connection-actions">
+                    <div class="connection-status-indicator ${statusClass}"></div>
+                    <button class="icon-btn" onclick="sendMessageTo('${userId}')" style="margin-left: 10px;" title="Send Message">
+                        <i class="fas fa-comment"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    connectionList.innerHTML = html;
+}
+
+function formatTimeAgo(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+    
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
+}
+
+function sendMessageTo(userId) {
+    if (!userId) return;
+    
+    // Set the partner ID and switch to affection tab
+    AppState.partnerId = userId;
+    document.getElementById('partnerId').value = userId;
+    saveAppState();
+    
+    switchTab('affection');
+    showToast(`Ready to send messages to ${userId}`, 'info');
+}
+</script><script>
+// ========== CONNECTION MANAGEMENT ==========
+function initiateCall() {
+    const partnerId = document.getElementById('partnerId').value.trim().toUpperCase();
+    
+    if (!partnerId) {
+        showToast('Please enter your pal\'s ID', 'warning');
+        document.getElementById('partnerId').focus();
+        return;
+    }
+    
+    if (partnerId === AppState.myId) {
+        showToast('You cannot call yourself, dear!', 'error');
+        return;
+    }
+    
+    if (!partnerId.startsWith('DP-') || partnerId.length !== 9) {
+        showToast('Invalid ID format. Should be DP-ABC123', 'error');
+        return;
+    }
+    
+    const db = firebase.database();
+    const callBtn = document.querySelector('#connectTab .primary-btn');
+    
+    // Disable button and show loading
+    callBtn.disabled = true;
+    const originalText = callBtn.innerHTML;
+    callBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ringing...';
+    
+    // Send call request
+    db.ref('calls/' + partnerId).push({
+        from: AppState.myId,
+        fromName: AppState.myName,
+        time: Date.now(),
+        type: 'call',
+        message: 'Wants to connect with you! ✨'
+    }).then(() => {
+        showToast(`Call sent to ${partnerId}`, 'success');
+        playNotificationSound();
+        
+        // Add to connections history
+        addToConnections(partnerId, 'outgoing', 'sent');
+        
+        // Save partner ID
+        if (partnerId !== AppState.partnerId) {
+            AppState.partnerId = partnerId;
+            saveAppState();
+        }
+        
+        // Add to active connections
+        if (!AppState.activeConnections.has(partnerId)) {
+            AppState.activeConnections.set(partnerId, {
+                name: partnerId,
+                status: 'pending',
+                lastSeen: Date.now()
+            });
+            saveAppState();
+            updateActiveConnections();
+        }
+        
+        // Visual feedback
+        callBtn.innerHTML = '<i class="fas fa-check"></i> Call Sent!';
+        callBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        
+        // Show floating animation
+        showFloatingAnimation('📞', 5);
+        
+    }).catch(error => {
+        console.error('Call error:', error);
+        showToast('Failed to send call. User may be offline.', 'error');
+        
+        callBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed';
+        callBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+        
+    }).finally(() => {
+        // Reset button after 3 seconds
+        setTimeout(() => {
+            callBtn.disabled = false;
+            callBtn.innerHTML = originalText;
+            callBtn.style.background = '';
+        }, 3000);
+    });
+}
+
+function handleIncomingCall(callData) {
+    if (AppState.currentCall || AppState.isRinging) return;
+    
+    AppState.currentCall = callData;
+    
+    // Update modal with caller info
+    document.getElementById('callerId').textContent = `From: ${callData.fromName || callData.from}`;
+    
+    // Show incoming call modal
+    showModal('incomingCallModal');
+    
+    // Start ringing
+    startRinging();
+    
+    // Start timer
+    startCallTimer();
+    
+    // Add to connections history
+    addToConnections(callData.from, 'incoming', 'ringing');
+    
+    // Add to active connections
+    if (!AppState.activeConnections.has(callData.from)) {
+        AppState.activeConnections.set(callData.from, {
+            name: callData.fromName || callData.from,
+            status: 'calling',
+            lastSeen: Date.now()
+        });
+        saveAppState();
+        updateActiveConnections();
+    }
+    
+    // Show system notification if permitted
+    if (AppState.settings.notifications && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+            new Notification('✨ DearPal Call', {
+                body: `Incoming connection from ${callData.fromName || callData.from}`,
+                icon: 'https://cdn-icons-png.flaticon.com/512/1077/1077114.png',
+                tag: 'dearpal-call',
+                requireInteraction: true
+            });
+        }
+    }
+}
+
+function handleConnectionRequest(requestData) {
+    if (AppState.currentConnectionRequest) return;
+    
+    AppState.currentConnectionRequest = requestData;
+    
+    // Update modal with requester info
+    document.getElementById('requesterId').textContent = `User ID: ${requestData.from}`;
+    
+    // Show connection request modal
+    showModal('connectionRequestModal');
+    
+    // Play notification sound
+    playNotificationSound();
+    
+    // Add to connections history
+    addToConnections(requestData.from, 'incoming', 'request');
+    
+    // Show system notification
+    if (AppState.settings.notifications && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+            new Notification('🤝 Connection Request', {
+                body: `${requestData.from} wants to connect with you`,
+                icon: 'https://cdn-icons-png.flaticon.com/512/1077/1077114.png',
+                tag: 'dearpal-request'
+            });
+        }
+    }
+}
+
+function acceptConnectionRequest() {
+    if (!AppState.currentConnectionRequest) return;
+    
+    const db = firebase.database();
+    const requesterId = AppState.currentConnectionRequest.from;
+    
+    // Send acceptance notification
+    db.ref('connectionRequests/' + requesterId).push({
+        from: AppState.myId,
+        fromName: AppState.myName,
+        type: 'accepted',
+        time: Date.now(),
+        message: `${AppState.myName} accepted your connection request! 🤗`
+    });
+    
+    // Add to active connections
+    AppState.activeConnections.set(requesterId, {
+        name: requesterId,
+        status: 'online',
+        lastSeen: Date.now()
+    });
+    
+    // Update connections history
+    updateConnectionStatus(requesterId, 'connected');
+    
+    // Close modal
+    closeModal('connectionRequestModal');
+    
+    // Show success message
+    showToast(`Connected with ${requesterId}`, 'success');
+    playNotificationSound();
+    
+    // Save state
+    AppState.partnerId = requesterId;
+    saveAppState();
+    updateActiveConnections();
+    
+    // Show celebration
+    showFloatingAnimation('✨', 10);
+    
+    // Clear current request
+    AppState.currentConnectionRequest = null;
+}
+
+function declineConnectionRequest() {
+    if (!AppState.currentConnectionRequest) return;
+    
+    const requesterId = AppState.currentConnectionRequest.from;
+    
+    // Update connections history
+    updateConnectionStatus(requesterId, 'declined');
+    
+    // Close modal
+    closeModal('connectionRequestModal');
+    
+    // Clear current request
+    AppState.currentConnectionRequest = null;
+    
+    showToast('Connection request declined', 'info');
+}
+
+function startRinging() {
+    AppState.isRinging = true;
+    
+    // Play ringtone
+    if (AppState.settings.sound) {
+        playRingtone();
+    }
+    
+    // Vibrate if enabled
+    if (AppState.settings.vibration && 'vibrate' in navigator) {
+        navigator.vibrate([200, 100, 200, 100, 200]);
+    }
+    
+    // Show floating hearts animation
+    showFloatingAnimation('💖', 5);
+}
+
+function startCallTimer() {
+    const timerText = document.getElementById('callTimer');
+    const timerProgress = document.querySelector('.timer-progress');
+    let timeLeft = 30;
+    
+    const timer = setInterval(() => {
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            dismissCall();
+            return;
+        }
+        
+        timerText.textContent = `${timeLeft}s`;
+        
+        // Update progress circle
+        const circumference = 2 * Math.PI * 28;
+        const offset = circumference - (timeLeft / 30) * circumference;
+        timerProgress.style.strokeDasharray = `${circumference} ${circumference}`;
+        timerProgress.style.strokeDashoffset = offset;
+        
+        timeLeft--;
+    }, 1000);
+    
+    // Store timer ID for cleanup
+    AppState.currentCall.timerId = timer;
+}
+
+function acceptCall() {
+    if (!AppState.currentCall) return;
+    
+    const db = firebase.database();
+    const callerId = AppState.currentCall.from;
+    
+    // Send acceptance notification
+    db.ref('calls/' + callerId).push({
+        from: AppState.myId,
+        fromName: AppState.myName,
+        type: 'accepted',
+        time: Date.now(),
+        message: 'Accepted your call! 🤗'
+    });
+    
+    // Update connections history
+    updateConnectionStatus(callerId, 'accepted');
+    
+    // Update active connection
+    AppState.activeConnections.set(callerId, {
+        name: AppState.currentCall.fromName || callerId,
+        status: 'online',
+        lastSeen: Date.now()
+    });
+    
+    // Close modal and stop ringing
+    dismissCall();
+    
+    // Show success message
+    showToast(`Connected with ${callerId}`, 'success');
+    playNotificationSound();
+    
+    // Save partner info
+    AppState.partnerId = callerId;
+    AppState.partnerName = AppState.currentCall.fromName;
+    saveAppState();
+    updateActiveConnections();
+    
+    // Show celebration animation
+    showFloatingAnimation('✨', 10);
+}
+
+function dismissCall() {
+    // Stop ringing
+    stopRingtone();
+    
+    // Clear timer if exists
+    if (AppState.currentCall?.timerId) {
+        clearInterval(AppState.currentCall.timerId);
+    }
+    
+    // Hide modal
+    closeModal('incomingCallModal');
+    
+    // Update connection status if ringing was in progress
+    if (AppState.currentCall) {
+        updateConnectionStatus(AppState.currentCall.from, 'missed');
+        AppState.currentCall = null;
+    }
+}
+
+function sendQuickResponse() {
+    if (!AppState.currentCall) return;
+    
+    const responses = [
+        "I'll call you back soon!",
+        "Thinking of you! ✨",
+        "Sending you good vibes!",
+        "Can't talk now, but hi! 👋",
+        "You're amazing! 💫"
+    ];
+    
+    const response = responses[Math.floor(Math.random() * responses.length)];
+    const db = firebase.database();
+    
+    db.ref('calls/' + AppState.currentCall.from).push({
+        from: AppState.myId,
+        fromName: AppState.myName,
+        type: 'message',
+        message: response,
+        time: Date.now()
+    });
+    
+    showToast('Quick response sent!', 'success');
+    dismissCall();
+}
+</script><script>
+// ========== PAIR CODE SYSTEM ==========
+function generatePairCode() {
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store with timestamp
+    AppState.pairCodes.set(code, {
+        userId: AppState.myId,
+        userName: AppState.myName,
+        timestamp: Date.now(),
+        expires: Date.now() + 300000 // 5 minutes
+    });
+    
+    // Save to Firebase for cross-device pairing
+    const db = firebase.database();
+    db.ref('pairCodes/' + code).set({
+        userId: AppState.myId,
+        userName: AppState.myName,
+        timestamp: Date.now()
+    });
+    
+    // Show code in input field
+    document.getElementById('pairCode').value = code;
+    
+    // Select the code for easy copying
+    document.getElementById('pairCode').select();
+    
+    // Visual feedback
+    showToast(`Pair code generated: ${code} (Expires in 5 minutes)`, 'success');
+    showFloatingAnimation('🔑', 3);
+    
+    // Auto-expire after 5 minutes
+    setTimeout(() => {
+        if (AppState.pairCodes.has(code)) {
+            AppState.pairCodes.delete(code);
+            db.ref('pairCodes/' + code).remove();
+            if (document.getElementById('pairCode').value === code) {
+                document.getElementById('pairCode').value = '';
+                showToast('Pair code expired', 'info');
+            }
+        }
+    }, 300000);
+}
+
+function connectWithCode() {
+    const code = document.getElementById('pairCode').value.trim();
+    
+    if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
+        showToast('Please enter a valid 6-digit code', 'warning');
+        document.getElementById('pairCode').focus();
+        return;
+    }
+    
+    // Check if code exists in cache
+    const codeData = AppState.pairCodes.get(code);
+    if (codeData) {
+        // Connect to the user
+        document.getElementById('partnerId').value = codeData.userId;
+        showToast(`Connected with ${codeData.userName}!`, 'success');
+        
+        // Remove used code
+        AppState.pairCodes.delete(code);
+        
+        // Add to active connections
+        AppState.activeConnections.set(codeData.userId, {
+            name: codeData.userName,
+            status: 'online',
+            lastSeen: Date.now()
+        });
+        saveAppState();
+        updateActiveConnections();
+        
+        // Switch to connect tab
+        switchTab('connect');
+        
+        return;
+    }
+    
+    // If not in cache, check Firebase
+    const db = firebase.database();
+    const connectBtn = document.querySelector('.secondary-btn');
+    
+    connectBtn.disabled = true;
+    const originalText = connectBtn.innerHTML;
+    connectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+    
+    db.ref('pairCodes/' + code).once('value').then(snapshot => {
+        const data = snapshot.val();
+        
+        if (!data) {
+            throw new Error('Invalid or expired code');
+        }
+        
+        // Get partner info from Firebase
+        const partnerId = data.userId;
+        const partnerName = data.userName || partnerId;
+        
+        document.getElementById('partnerId').value = partnerId;
+        
+        // Send connection request
+        db.ref('connectionRequests/' + partnerId).push({
+            from: AppState.myId,
+            fromName: AppState.myName,
+            via: 'pairCode',
+            code: code,
+            time: Date.now()
+        });
+        
+        showToast(`Connection request sent to ${partnerName}`, 'success');
+        playNotificationSound();
+        
+        // Add to active connections
+        AppState.activeConnections.set(partnerId, {
+            name: partnerName,
+            status: 'pending',
+            lastSeen: Date.now()
+        });
+        saveAppState();
+        updateActiveConnections();
+        
+        // Clean up from Firebase
+        snapshot.ref.remove();
+        
+        // Switch to connect tab
+        switchTab('connect');
+        
+    }).catch(error => {
+        console.error('Connection error:', error);
+        showToast('Invalid or expired pair code', 'error');
+        
+    }).finally(() => {
+        connectBtn.disabled = false;
+        connectBtn.innerHTML = originalText;
+    });
+}
+
+// ========== AFFECTION SYSTEM ==========
+const AffectionManager = {
+    // Categories of affection
+    categories: {
+        warmth: { emoji: '🤗', color: '#fb7185', points: 2 },
+        smile: { emoji: '😊', color: '#fbbf24', points: 1 },
+        sparkle: { emoji: '✨', color: '#a78bfa', points: 1 },
+        star: { emoji: '⭐', color: '#f59e0b', points: 2 },
+        heart: { emoji: '💝', color: '#ec4899', points: 3 },
+        sun: { emoji: '☀️', color: '#f59e0b', points: 2 },
+        moon: { emoji: '🌙', color: '#8b5cf6', points: 1 },
+        flower: { emoji: '🌼', color: '#84cc16', points: 1 },
+        coffee: { emoji: '☕', color: '#78350f', points: 1 },
+        book: { emoji: '📚', color: '#475569', points: 1 }
+    },
+    
+    // Sweet messages database
+    messages: {
+        warmth: [
+            "Sending you a warm hug! 🤗",
+            "You deserve all the warmth in the world!",
+            "Wrapping you in virtual coziness!",
+            "Hope you feel as warm as this feels!"
+        ],
+        smile: [
+            "Hope this brings a smile to your face! 😊",
+            "Thinking of your wonderful smile!",
+            "You have the best smile!",
+            "Smiling because of you!"
+        ],
+        sparkle: [
+            "Sending sparkles your way! ✨",
+            "You make everything sparkle!",
+            "Hope your day is sparkling!",
+            "You're full of sparkle!"
+        ],
+        star: [
+            "You're a star! ⭐",
+            "Shining bright for you!",
+            "You're my favorite star!",
+            "Wishing you starry moments!"
+        ],
+        heart: [
+            "You have a special place! 💝",
+            "Sending heartfelt good vibes!",
+            "You mean so much!",
+            "From my heart to yours!"
+        ],
+        general: [
+            "Just thinking of you, dear!",
+            "Hope you're having a wonderful day!",
+            "Sending good vibes your way!",
+            "You make everything better!",
+            "You're pretty awesome!",
+            "Wishing you happy moments!",
+            "You're on my mind today!",
+            "Sending you positivity!",
+            "You're doing great things!",
+            "You inspire me!"
+        ]
+    },
+    
+    history: [],
+    
+    // Initialize
+    init() {
+        // Load affection history
+        const saved = localStorage.getItem('dearpal_affection');
+        if (saved) {
+            this.history = JSON.parse(saved);
+        }
+    },
+    
+    // Send affection
+    sendAffection(category) {
+        if (!AppState.partnerId) {
+            showToast('Connect with a pal first!', 'warning');
+            switchTab('connect');
+            return;
+        }
+        
+        const affection = this.categories[category];
+        if (!affection) return;
+        
+        // Get random message
+        const messages = this.messages[category] || this.messages.general;
+        const message = messages[Math.floor(Math.random() * messages.length)];
+        
+        // Send via Firebase
+        const db = firebase.database();
+        db.ref('affection/' + AppState.partnerId).push({
+            from: AppState.myId,
+            fromName: AppState.myName,
+            category: category,
+            emoji: affection.emoji,
+            message: message,
+            points: affection.points,
+            time: Date.now()
+        }).then(() => {
+            // Show success
+            showToast(`Sent ${affection.emoji} ${message}`, 'success');
+            
+            // Play sound
+            playNotificationSound();
+            
+            // Show animation
+            this.showAffectionAnimation(affection.emoji, affection.color);
+            
+            // Record in history
+            this.recordAffection(category, message, true);
+            
+        }).catch(error => {
+            console.error('Send affection error:', error);
+            showToast('Failed to send affection', 'error');
+        });
+    },
+    
+    // Handle received affection
+    handleAffectionMessage(affectionData) {
+        // Show notification
+        showToast(`💖 ${affectionData.message}`, 'success');
+        playNotificationSound();
+        
+        // Record in history
+        this.recordReceivedAffection(affectionData);
+        
+        // Show floating animation
+        showFloatingAnimation(affectionData.emoji || '💖', 5);
+    },
+    
+    // Record received affection
+    recordReceivedAffection(affectionData) {
+        const record = {
+            id: Date.now(),
+            from: affectionData.from,
+            fromName: affectionData.fromName || affectionData.from,
+            category: affectionData.category,
+            message: affectionData.message,
+            emoji: affectionData.emoji,
+            timestamp: Date.now(),
+            sent: false
+        };
+        
+        // Add to beginning of array (newest first)
+        this.history.unshift(record);
+        
+        // Keep only last 50 records
+        if (this.history.length > 50) {
+            this.history = this.history.slice(0, 50);
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('dearpal_affection', JSON.stringify(this.history));
+    },
+    
+    // Record sent affection
+    recordAffection(category, message, sent = true) {
+        const record = {
+            id: Date.now(),
+            category: category,
+            message: message,
+            timestamp: Date.now(),
+            sent: sent
+        };
+        
+        // Add to beginning of array (newest first)
+        this.history.unshift(record);
+        
+        // Keep only last 50 records
+        if (this.history.length > 50) {
+            this.history = this.history.slice(0, 50);
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('dearpal_affection', JSON.stringify(this.history));
+    },
+    
+    // Show floating animation
+    showAffectionAnimation(emoji, color) {
+        const container = document.getElementById('animationContainer');
+        const count = 3 + Math.floor(Math.random() * 3);
+        
+        for (let i = 0; i < count; i++) {
+            setTimeout(() => {
+                const element = document.createElement('div');
+                element.className = 'floating-emoji';
+                element.innerHTML = emoji;
+                element.style.left = `${20 + Math.random() * 60}%`;
+                element.style.color = color;
+                element.style.animationDelay = `${i * 0.2}s`;
+                element.style.fontSize = `${20 + Math.random() * 20}px`;
+                
+                container.appendChild(element);
+                
+                // Remove after animation
+                setTimeout(() => {
+                    if (element.parentNode) {
+                        element.parentNode.removeChild(element);
+                    }
+                }, 3000);
+            }, i * 100);
+        }
+    },
+    
+    // Load affection tab content
+    loadTabContent() {
+        const tab = document.getElementById('affectionTab');
+        if (!tab) return;
+        
+        let html = `
+            <div class="section-card">
+                <h2><i class="fas fa-heart"></i> Send Affection</h2>
+                <p class="input-hint">Tap to send sweet gestures to your pal</p>
+                
+                <div class="affection-grid">
+        `;
+        
+        // Add all affection items
+        Object.entries(this.categories).forEach(([key, data]) => {
+            html += `
+                <div class="affection-item" onclick="AffectionManager.sendAffection('${key}')">
+                    <div class="affection-emoji">${data.emoji}</div>
+                    <div class="affection-label">${key.charAt(0).toUpperCase() + key.slice(1)}</div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+            
+            <div class="section-card">
+                <h2><i class="fas fa-comment"></i> Sweet Messages</h2>
+                <div class="quick-messages">
+        `;
+        
+        // Add some sweet message options
+        this.messages.general.slice(0, 6).forEach(message => {
+            const escapedMessage = message.replace(/'/g, "\\'");
+            html += `
+                <button class="message-option" onclick="sendSweetMessage('${escapedMessage}')">
+                    ${message}
+                </button>
+            `;
+        });
+        
+        html += `
+                </div>
+                <button class="secondary-btn" onclick="showModal('quickMessageModal')">
+                    <i class="fas fa-plus"></i> More Messages
+                </button>
+            </div>
+            
+            <div class="section-card">
+                <h2><i class="fas fa-history"></i> Affection History</h2>
+        `;
+        
+        if (this.history.length === 0) {
+            html += `
+                <div class="empty-state">
+                    <i class="fas fa-heart"></i>
+                    <h3>No Affection Yet</h3>
+                    <p>Start sending affection to your pal!</p>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="history-list">
+            `;
+            
+            // Show recent affection (max 10)
+            this.history.slice(0, 10).forEach(item => {
+                const time = new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const fromText = item.fromName ? `From ${item.fromName}` : '';
+                
+                html += `
+                    <div class="history-item ${item.sent ? 'sent' : 'received'}">
+                        <div class="history-emoji">${item.emoji || '💖'}</div>
+                        <div class="history-content">
+                            <p class="history-message">${item.message}</p>
+                            <div class="history-meta">
+                                <span class="history-time">${time} ${fromText}</span>
+                                <span class="history-status">${item.sent ? 'Sent' : 'Received'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                </div>
+            `;
+        }
+        
+        html += `
+            </div>
+        `;
+        
+        tab.innerHTML = html;
+    }
+};
+
+// Initialize affection manager
+AffectionManager.init();
+// ========== AFFECTION TAB LOADER ==========
+function loadAffectionTab() {
+    AffectionManager.loadTabContent();
+}
+// ========== SWEET MESSAGES ==========
+function sendSweetMessage(message = null) {
+    if (!AppState.partnerId) {
+        showToast('Connect with a pal first!', 'warning');
+        switchTab('connect');
+        return;
+    }
+    
+    if (!message) {
+        // Use random message
+        const messages = AffectionManager.messages.general;
+        message = messages[Math.floor(Math.random() * messages.length)];
+    }
+    
+    const db = firebase.database();
+    db.ref('messages/' + AppState.partnerId).push({
+        from: AppState.myId,
+        fromName: AppState.myName,
+        message: message,
+        time: Date.now(),
+        type: 'sweet'
+    }).then(() => {
+        showToast('Sweet message sent! ✨', 'success');
+        playNotificationSound();
+        showFloatingAnimation('💌', 3);
+        
+        // Record in history
+        AffectionManager.recordAffection('message', message);
+    }).catch(error => {
+        showToast('Failed to send message', 'error');
+    });
+}
+
+function sendThinkingOfYou() {
+    const messages = [
+        "Just thinking of you, dear! 💭",
+        "You crossed my mind today! ✨",
+        "Sending thoughts your way! 🌟",
+        "Thinking of our wonderful chats!",
+        "You were on my mind, so hi! 👋"
+    ];
+    
+    const message = messages[Math.floor(Math.random() * messages.length)];
+    sendSweetMessage(message);
+}
+
+function askFriendQuestion() {
+    const questions = [
+        "Would you rather: Coffee shop chat or park walk?",
+        "Favorite way to spend a lazy afternoon?",
+        "What always makes you smile? 😊",
+        "Best compliment you've ever received?",
+        "What's your go-to happy song? 🎵",
+        "Morning person or night owl?",
+        "Beach vacation or mountain retreat?"
+    ];
+    
+    const question = questions[Math.floor(Math.random() * questions.length)];
+    
+    if (!AppState.partnerId) {
+        showToast('Connect with a pal first!', 'warning');
+        switchTab('connect');
+        return;
+    }
+    
+    const db = firebase.database();
+    db.ref('questions/' + AppState.partnerId).push({
+        from: AppState.myId,
+        fromName: AppState.myName,
+        question: question,
+        time: Date.now()
+    }).then(() => {
+        showToast('Question sent to your pal! ❓', 'success');
+        playNotificationSound();
+    });
+}
+
+function handleAffectionMessage(affectionData) {
+    AffectionManager.handleAffectionMessage(affectionData);
+}
+
+function sendPreMessage(message) {
+    sendSweetMessage(message);
+    closeModal('quickMessageModal');
+}
+
+// ========== CONNECTIONS HISTORY ==========
+function addToConnections(partnerId, type, status) {
+    const connection = {
+        id: Date.now(),
+        partnerId: partnerId,
+        type: type, // 'incoming' or 'outgoing'
+        status: status, // 'ringing', 'sent', 'accepted', 'missed', 'connected', 'declined'
+        timestamp: Date.now()
+    };
+    
+    AppState.connections.push(connection);
+    saveAppState();
+}
+
+function updateConnectionStatus(partnerId, status) {
+    // Find the most recent connection with this partner
+    const recentConnections = AppState.connections
+        .filter(c => c.partnerId === partnerId)
+        .sort((a, b) => b.timestamp - a.timestamp);
+    
+    if (recentConnections.length > 0) {
+        recentConnections[0].status = status;
+        saveAppState();
+    }
+}
+</script>    <script>
+    // ========== MOMENTS SYSTEM ==========
+    const MomentsManager = {
+        moments: [],
+        
+        init() {
+            // Load moments from localStorage
+            const saved = localStorage.getItem('dearpal_moments');
+            this.moments = saved ? JSON.parse(saved) : [];
+            
+            // If no moments, add some sample ones
+            if (this.moments.length === 0) {
+                this.addSampleMoments();
+            }
+        },
+        
+        addSampleMoments() {
+            const sampleMoments = [
+                {
+                    id: 1,
+                    type: 'first',
+                    emoji: '🎉',
+                    title: 'First Connection!',
+                    content: 'You started your DearPal journey',
+                    date: new Date().toLocaleDateString(),
+                    timestamp: Date.now(),
+                    shared: false
+                },
+                {
+                    id: 2,
+                    type: 'welcome',
+                    emoji: '✨',
+                    title: 'Welcome to DearPal!',
+                    content: 'Get ready for wonderful connections',
+                    date: new Date().toLocaleDateString(),
+                    timestamp: Date.now(),
+                    shared: false
+                }
+            ];
+            
+            this.moments = sampleMoments;
+            this.save();
+        },
+        
+        addMoment(type, title, content, emoji = '✨') {
+            const moment = {
+                id: Date.now(),
+                type: type,
+                emoji: emoji,
+                title: title,
+                content: content,
+                date: new Date().toLocaleDateString(),
+                timestamp: Date.now(),
+                shared: false
+            };
+            
+            this.moments.unshift(moment); // Add to beginning
+            this.save();
+            
+            // Update UI
+            this.loadTabContent();
+            
+            return moment;
+        },
+        
+        shareMoment(momentId) {
+            if (!AppState.partnerId) {
+                showToast('Connect with a pal to share!', 'warning');
+                return;
+            }
+            
+            const moment = this.moments.find(m => m.id === momentId);
+            if (!moment) return;
+            
+            const db = firebase.database();
+            db.ref('sharedMoments/' + AppState.partnerId).push({
+                from: AppState.myId,
+                moment: moment,
+                time: Date.now()
+            }).then(() => {
+                moment.shared = true;
+                this.save();
+                showToast('Moment shared with your pal!', 'success');
+                playNotificationSound();
+            }).catch(error => {
+                showToast('Failed to share moment', 'error');
+            });
+        },
+        
+        save() {
+            localStorage.setItem('dearpal_moments', JSON.stringify(this.moments));
+        },
+        
+        loadTabContent() {
+            const tab = document.getElementById('momentsTab');
+            if (!tab) return;
+            
+            if (this.moments.length === 0) {
+                tab.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-star"></i>
+                        <h3>No Moments Yet</h3>
+                        <p>Start connecting to create special moments!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <div class="section-card">
+                    <h2><i class="fas fa-star"></i> Special Moments</h2>
+                    <p class="input-hint">Your shared memories and connections</p>
+                    
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-number">${this.moments.length}</div>
+                            <div class="stat-label">Total Moments</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${AppState.connections.length}</div>
+                            <div class="stat-label">Connections</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${this.getSharedCount()}</div>
+                            <div class="stat-label">Shared</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${this.getStreak()}</div>
+                            <div class="stat-label">Day Streak</div>
+                        </div>
+                    </div>
+                    
+                    <div class="moments-grid">
+            `;
+            
+            // Show recent moments (max 6)
+            this.moments.slice(0, 6).forEach(moment => {
+                html += `
+                    <div class="moment-card">
+                        <div class="moment-header">
+                            <div class="moment-emoji">${moment.emoji}</div>
+                            <div class="moment-title">${moment.title}</div>
+                        </div>
+                        <div class="moment-content">
+                            ${moment.content}
+                        </div>
+                        <div class="moment-footer">
+                            <span>${moment.date}</span>
+                            ${moment.shared ? 
+                                '<i class="fas fa-share-alt" style="color:#10b981" title="Shared"></i>' : 
+                                `<button class="share-btn" onclick="MomentsManager.shareMoment(${moment.id})" 
+                                 style="background:none;border:none;color:#8b5cf6;cursor:pointer;font-size:14px;" title="Share">
+                                    <i class="fas fa-share"></i>
+                                </button>`}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                    
+                    <button class="tertiary-btn" onclick="addNewMoment()">
+                        <i class="fas fa-plus"></i> Add New Moment
+                    </button>
+                </div>
+            `;
+            
+            tab.innerHTML = html;
+        },
+        
+        getSharedCount() {
+            return this.moments.filter(m => m.shared).length;
+        },
+        
+        getStreak() {
+            if (this.moments.length < 2) return 1;
+            
+            // Simple streak calculation based on consecutive days
+            let streak = 1;
+            const sorted = [...this.moments].sort((a, b) => b.timestamp - a.timestamp);
+            let lastDate = new Date(sorted[0].timestamp).toDateString();
+            
+            for (let i = 1; i < sorted.length; i++) {
+                const currentDate = new Date(sorted[i].timestamp).toDateString();
+                const yesterday = new Date(Date.now() - 86400000).toDateString();
+                
+                if (lastDate === currentDate || lastDate === yesterday) {
+                    streak++;
+                    lastDate = currentDate;
+                } else {
+                    break;
+                }
+            }
+            
+            return streak;
+        }
+    };
+
+    // Initialize moments manager
+    MomentsManager.init();
+
+    // ========== MOMENTS TAB LOADER ==========
+    function loadMomentsTab() {
+        MomentsManager.loadTabContent();
+    }
+
+    // ========== ADD NEW MOMENT ==========
+    function addNewMoment() {
+        const momentTypes = [
+            { type: 'chat', emoji: '💬', title: 'Great Chat', prompt: 'What made this chat special?' },
+            { type: 'laugh', emoji: '😂', title: 'Shared Laughter', prompt: 'What made you laugh together?' },
+            { type: 'support', emoji: '🤗', title: 'Support Given', prompt: 'How did you support each other?' },
+            { type: 'inspiration', emoji: '💡', title: 'Inspiring Moment', prompt: 'What inspired you?' },
+            { type: 'gratitude', emoji: '🙏', title: 'Gratitude Moment', prompt: 'What are you grateful for?' }
+        ];
+        
+        const randomType = momentTypes[Math.floor(Math.random() * momentTypes.length)];
+        
+        const title = prompt(`Enter a title for this moment:\n(Default: ${randomType.title})`, randomType.title);
+        if (!title) return;
+        
+        const content = prompt(randomType.prompt, `I appreciated our connection today! ${randomType.emoji}`);
+        if (!content) return;
+        
+        const moment = MomentsManager.addMoment(
+            randomType.type,
+            title,
+            content,
+            randomType.emoji
+        );
+        
+        showToast('New moment added! ✨', 'success');
+        
+        // Ask if they want to share it
+        if (AppState.partnerId && confirm('Share this moment with your pal?')) {
+            MomentsManager.shareMoment(moment.id);
+        }
+    }
+
+    // ========== MORE TAB CONTENT ==========
+    function loadMoreTab() {
+        const tab = document.getElementById('moreTab');
+        if (!tab) return;
+        
+        const stats = getConnectionStats();
+        
+        const html = `
+            <div class="section-card">
+                <h2><i class="fas fa-sliders-h"></i> Settings</h2>
+                
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Sound Notifications</h3>
+                        <p>Play sounds for calls and messages</p>
+                    </div>
+                    <div class="toggle-switch ${AppState.settings.sound ? 'active' : ''}" 
+                         data-setting="sound" onclick="toggleSetting('sound')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Vibration</h3>
+                        <p>Vibrate on incoming calls</p>
+                    </div>
+                    <div class="toggle-switch ${AppState.settings.vibration ? 'active' : ''}" 
+                         data-setting="vibration" onclick="toggleSetting('vibration')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Notifications</h3>
+                        <p>Show notifications for calls</p>
+                    </div>
+                    <div class="toggle-switch ${AppState.settings.notifications ? 'active' : ''}" 
+                         data-setting="notifications" onclick="toggleSetting('notifications')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section-card">
+                <h2><i class="fas fa-chart-line"></i> Statistics</h2>
+                
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.total}</div>
+                        <div class="stat-label">Total Calls</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.accepted}</div>
+                        <div class="stat-label">Connected</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${MomentsManager.moments.length}</div>
+                        <div class="stat-label">Moments</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${MomentsManager.getStreak()}</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section-card">
+                <h2><i class="fas fa-info-circle"></i> About</h2>
+                <p style="margin-bottom: 15px; color: #64748b; line-height: 1.5;">
+                    DearPal v${APP_CONFIG.VERSION}<br>
+                    A special connection app for meaningful relationships.<br>
+                    <small style="font-size: 12px; opacity: 0.8;">Your ID: ${AppState.myId}</small>
+                </p>
+                
+                <button class="secondary-btn" onclick="testAllFeatures()">
+                    <i class="fas fa-vial"></i> Test Features
+                </button>
+                
+                <button class="tertiary-btn" onclick="exportData()">
+                    <i class="fas fa-download"></i> Export Data
+                </button>
+                
+                <button class="primary-btn" onclick="resetApp()" style="background: linear-gradient(135deg, #ef4444, #dc2626); margin-top: 20px;">
+                    <i class="fas fa-trash"></i> Reset App
+                </button>
+            </div>
+        `;
+        
+        tab.innerHTML = html;
+    }
+
+    // ========== STATISTICS ==========
+    function getConnectionStats() {
+        const connections = AppState.connections;
+        const total = connections.length;
+        const incoming = connections.filter(c => c.type === 'incoming').length;
+        const outgoing = connections.filter(c => c.type === 'outgoing').length;
+        const accepted = connections.filter(c => c.status === 'accepted' || c.status === 'connected').length;
+        
+        return { total, incoming, outgoing, accepted };
+    }
+
+    // ========== SETTINGS TOGGLES ==========
+    function toggleSetting(setting) {
+        AppState.settings[setting] = !AppState.settings[setting];
+        
+        // Update UI
+        const toggle = document.querySelector(`.toggle-switch[data-setting="${setting}"]`);
+        if (toggle) {
+            toggle.classList.toggle('active', AppState.settings[setting]);
+        }
+        
+        // Save settings
+        saveAppState();
+        
+        // Show feedback
+        showToast(`${setting.charAt(0).toUpperCase() + setting.slice(1)} ${AppState.settings[setting] ? 'enabled' : 'disabled'}`, 'info');
+        
+        // Special handling for notifications
+        if (setting === 'notifications' && AppState.settings.notifications) {
+            requestNotificationPermission();
+        }
+    }
+
+    // ========== NOTIFICATION PERMISSION ==========
+    function requestNotificationPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    showToast('Notifications enabled!', 'success');
+                }
+            });
+        }
+    }
+
+    // ========== EVENT LISTENERS SETUP ==========
+    function setupEventListeners() {
+        // Enter key on partner ID input
+        document.getElementById('partnerId').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                initiateCall();
+            }
+        });
+        
+        // Enter key on pair code input
+        document.getElementById('pairCode').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                connectWithCode();
+            }
+        });
+        
+        // Focus partner ID input when clicking connect tab
+        document.querySelector('[data-tab="connect"]').addEventListener('click', () => {
+            setTimeout(() => {
+                const partnerIdInput = document.getElementById('partnerId');
+                if (partnerIdInput && partnerIdInput.value === '') {
+                    partnerIdInput.focus();
+                }
+            }, 100);
+        });
+        
+        // Detect online/offline status
+        window.addEventListener('online', () => {
+            showToast('Back online!', 'success');
+            document.getElementById('statusDot').classList.remove('offline');
+            document.getElementById('statusDot').classList.add('online');
+            document.getElementById('statusText').textContent = 'Connected';
+            
+            // Update connections when back online
+            updateActiveConnections();
+        });
+        
+        window.addEventListener('offline', () => {
+            showToast('Working offline', 'warning');
+            document.getElementById('statusDot').classList.remove('online');
+            document.getElementById('statusDot').classList.add('offline');
+            document.getElementById('statusText').textContent = 'Offline';
+        });
+        
+        // Prevent accidental refresh during calls
+        window.addEventListener('beforeunload', (e) => {
+            if (AppState.isRinging) {
+                e.preventDefault();
+                e.returnValue = 'You have an incoming call! Are you sure you want to leave?';
+            }
+        });
+        
+        // Handle visibility change (app in background)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && AppState.isRinging) {
+                console.log('App in background, ring continues');
+            }
+        });
+        
+        // Periodic connection status update
+        setInterval(() => {
+            updateActiveConnections();
+        }, 60000); // Update every minute
+        
+        // Auto-clean old pair codes every minute
+        setInterval(() => {
+            const now = Date.now();
+            AppState.pairCodes.forEach((data, code) => {
+                if (data.expires < now) {
+                    AppState.pairCodes.delete(code);
+                }
+            });
+        }, 60000);
+    }
+
+    // ========== TEST FUNCTIONS ==========
+    function testAllFeatures() {
+        showToast('Testing all features...', 'info');
+        
+        // Test ringtone
+        playRingtone();
+        setTimeout(stopRingtone, 2000);
+        
+        // Test notification sound
+        setTimeout(playNotificationSound, 2500);
+        
+        // Show floating animations
+        setTimeout(() => showFloatingAnimation('✨', 5), 1000);
+        setTimeout(() => showFloatingAnimation('💖', 5), 1500);
+        setTimeout(() => showFloatingAnimation('🌟', 5), 2000);
+        
+        // Show success message
+        setTimeout(() => {
+            showToast('All features working! ✨', 'success');
+        }, 3000);
+    }
+
+    // ========== DATA EXPORT ==========
+    function exportData() {
+        const data = {
+            userId: AppState.myId,
+            userName: AppState.myName,
+            settings: AppState.settings,
+            partnerId: AppState.partnerId,
+            partnerName: AppState.partnerName,
+            moments: MomentsManager.moments,
+            connections: AppState.connections,
+            affectionHistory: AffectionManager.history,
+            activeConnections: Array.from(AppState.activeConnections.entries()),
+            exportDate: new Date().toISOString(),
+            appVersion: APP_CONFIG.VERSION
+        };
+        
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        // Create download link
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `dearpal-backup-${new Date().toISOString().split('T')[0]}.json`;
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        
+        showToast('Data exported successfully!', 'success');
+    }
+
+    // ========== APP RESET ==========
+    function resetApp() {
+        if (confirm('⚠️ Reset all app data?\nThis will clear your settings, moments, and connections.')) {
+            // Clear all localStorage items
+            const keys = [
+                'dearpal_userId',
+                'dearpal_userName',
+                'dearpal_settings',
+                'dearpal_partnerId',
+                'dearpal_partnerName',
+                'dearpal_moments',
+                'dearpal_connections',
+                'dearpal_affection',
+                'dearpal_activeConnections'
+            ];
+            
+            keys.forEach(key => localStorage.removeItem(key));
+            
+            // Show confirmation
+            showToast('App reset complete. Reloading...', 'info');
+            
+            // Reload page after delay
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        }
+    }
+
+    // ========== HELPER FUNCTIONS ==========
+    function showFloatingAnimation(emoji, count = 5) {
+        const container = document.getElementById('animationContainer');
+        
+        for (let i = 0; i < count; i++) {
+            setTimeout(() => {
+                const element = document.createElement('div');
+                element.className = 'floating-emoji';
+                element.innerHTML = emoji;
+                element.style.left = `${Math.random() * 80 + 10}%`;
+                element.style.fontSize = `${20 + Math.random() * 30}px`;
+                element.style.animationDuration = `${2 + Math.random() * 2}s`;
+                element.style.zIndex = '9999';
+                
+                container.appendChild(element);
+                
+                // Remove after animation
+                setTimeout(() => {
+                    if (element.parentNode) {
+                        element.parentNode.removeChild(element);
+                    }
+                }, 3000);
+            }, i * 100);
+        }
+    }
+
+    // ========== GLOBAL FUNCTION ASSIGNMENTS ==========
+    // Make functions available globally for HTML onclick
+    window.copyMyId = copyMyId;
+    window.refreshMyId = refreshMyId;
+    window.initiateCall = initiateCall;
+    window.connectWithCode = connectWithCode;
+    window.generatePairCode = generatePairCode;
+    window.acceptCall = acceptCall;
+    window.dismissCall = dismissCall;
+    window.acceptConnectionRequest = acceptConnectionRequest;
+    window.declineConnectionRequest = declineConnectionRequest;
+    window.sendQuickResponse = sendQuickResponse;
+    window.sendSweetMessage = sendSweetMessage;
+    window.sendThinkingOfYou = sendThinkingOfYou;
+    window.askFriendQuestion = askFriendQuestion;
+    window.switchTab = switchTab;
+    window.toggleSetting = toggleSetting;
+    window.testAllFeatures = testAllFeatures;
+    window.exportData = exportData;
+    window.resetApp = resetApp;
+    window.addNewMoment = addNewMoment;
+    window.closeModal = closeModal;
+    window.sendPreMessage = sendPreMessage;
+    window.closeToast = closeToast;
+    window.sendMessageTo = sendMessageTo;
+    window.loadAffectionTab = loadAffectionTab;
+    window.loadMomentsTab = loadMomentsTab;
+
+    // Make managers available globally
+    window.AffectionManager = AffectionManager;
+    window.MomentsManager = MomentsManager;
+
+    // ========== INITIALIZE ON LOAD ==========
+    // Request notification permission on start
+    if ('Notification' in window && Notification.permission === 'default') {
+        setTimeout(() => {
+            Notification.requestPermission();
+        }, 2000);
+    }
+
+    // Setup event listeners when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupEventListeners);
+    } else {
+        setupEventListeners();
+    }
+
+    console.log('✨ DearPal v' + APP_CONFIG.VERSION + ' loaded successfully!');
+    console.log('Your ID:', AppState.myId);
+    console.log('Firebase connected:', AppState.isConnected);
+    </script>
+</body>
+</html>
